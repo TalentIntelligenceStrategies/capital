@@ -157,45 +157,7 @@
      absolute inset from .report-card-media) and sits behind the scrim. */
   .report-card-media.img-frame { border-radius: 0; }
 
-  /* ── §4 The approach — two side-by-side beats (before / after) ── */
-  .capital-approach__grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: clamp(16px, 2vw, 28px);
-    margin-top: clamp(24px, 3vw, 40px);
-  }
-  .capital-beat {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .capital-beat .img-frame { aspect-ratio: 16 / 10; }
-  .capital-beat__label {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-  }
-  .capital-beat__title {
-    font-size: clamp(20px, 2.2vw, 26px);
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--text-primary);
-  }
-  .capital-beat__body {
-    font-size: 16px;
-    line-height: 1.6;
-    color: var(--text-secondary);
-  }
-
-  /* ── §6 Payoffs — 2×2 tile grid (text tiles, not links) ── */
-  .payoff-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: clamp(12px, 1.4vw, 20px);
-    margin-top: clamp(24px, 3vw, 40px);
-  }
+  /* ── Payoff tile — shared card, reused by the §1.5 Services band ── */
   .payoff-card {
     padding: clamp(20px, 2vw, 28px);
     border: 1px solid var(--border-primary);
@@ -217,24 +179,8 @@
     color: var(--text-secondary);
   }
 
-  /* ── §7 Close — centred CTA band ── */
-  .capital-cta { text-align: center; }
-  .capital-cta .section-dek { margin-inline: auto; }
-  .capital-cta__actions {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: clamp(20px, 2.4vw, 28px);
-  }
-
   /* Deep-link target: clear the fixed 64px top nav when jumping to #owned. */
   #owned { scroll-margin-top: 88px; }
-
-  @media (max-width: 900px) {
-    .capital-approach__grid,
-    .payoff-grid { grid-template-columns: 1fr; }
-  }
 </style>
 </head>
 <body>
@@ -513,95 +459,6 @@
   </section>
 
   <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §4  The approach  —  before / after, two framed beats               ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section capital-approach" aria-labelledby="capital-approach-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-approach-heading" class="h-section" data-reveal data-zh="投前避雷、投後築牆">Clear the mines. Build the wall.</h2>
-          <p class="section-dek" data-reveal data-zh="智權先行，資本隨後——與多數投資人的順序相反。">IP first, then capital behind it — the opposite of how most investors work.</p>
-        </div>
-      </header>
-
-      <div class="capital-approach__grid">
-        <article class="capital-beat" data-reveal>
-          <div class="img-frame"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-          <p class="capital-beat__label" data-zh="投資前">Before we invest</p>
-          <h3 class="capital-beat__title" data-zh="清除地雷">Clear the mines</h3>
-          <p class="capital-beat__body" data-zh="以 AI 比對全球頂尖專利資料庫，盤點你的侵權曝險與這片領域尚未布局的空白地帶。你在清楚知道風險何在的前提下擴張——而不是在訴訟裡才發現。">An AI-driven audit against a top-tier global patent database maps your infringement exposure and the field's open white-space. You scale knowing where the risks are — not discovering them in a lawsuit.</p>
-        </article>
-        <article class="capital-beat" data-reveal>
-          <div class="img-frame"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-          <p class="capital-beat__label" data-zh="投資後">After we invest</p>
-          <h3 class="capital-beat__title" data-zh="築起防護牆">Build the wall</h3>
-          <p class="capital-beat__body" data-zh="TIS 圍繞你的技術布局高品質專利，並將你接入共有防禦專利池。因為我們是投資人，這套方案會真正被落實——而不只是被建議。">TIS files high-quality patents around your technology and connects you to a shared defense pool. Because we're the investor, the program actually gets built — not just recommended.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §5  Why us  —  Reports-style carousel, 3 credibility cards           ║
-       ║ Innovue credited as "top-tier global patent database" (voice pass    ║
-       ║ pending; "used by TSMC" claim intentionally held back).              ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" id="why" aria-labelledby="capital-why-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-why-heading" class="h-section" data-reveal data-zh="我們為何做得到——而不只是提供建議">Why we can actually do this — not just advise it.</h2>
-          <p class="section-dek" data-reveal data-zh="任何事務所都能寫專利。真正讓價值複利的，是背後的引擎，以及布局所站的位置。">Any firm can write a patent. What compounds your value is the engine behind it and the position it's filed from.</p>
-        </div>
-        <div class="report-nav">
-          <button type="button" class="report-nav-btn" data-dir="prev" aria-label="Previous" aria-controls="capital-why-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
-          </button>
-          <button type="button" class="report-nav-btn" data-dir="next" aria-label="Next" aria-controls="capital-why-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <div class="report-carousel" id="capital-why-carousel">
-        <ul class="report-carousel-track">
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="why-card-1">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="評級引擎">Rating engine</span>
-                <h3 id="why-card-1" class="report-card-title" data-zh="用評級引擎，而不是憑意見">A rating engine, not opinions.</h3>
-                <p class="report-card-dek" data-zh="我們的分析建立在 Innovue——全球頂尖專利資料庫之上，因此風險與空白地帶是被「量出來」的，而不是猜出來的。">Audits run on Innovue — a top-tier global patent database — so risk and white-space are measured, not guessed.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="why-card-2">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="集體防禦">Shared defense</span>
-                <h3 id="why-card-2" class="report-card-title" data-zh="一種買不到的集體防禦">A shared defense you can't buy.</h3>
-                <p class="report-card-dek" data-zh="被投公司將專利回授至共有池，池再自動授權給池中每一家公司。加入越早，你分享到的池越深。">Portfolio companies license patents into a common pool that licenses back out to everyone in it. The earlier you join, the deeper the pool you share in.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="why-card-3">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="乾淨的非紅位置">Clean position</span>
-                <h3 id="why-card-3" class="report-card-title" data-zh="一個乾淨的非紅供應鏈位置">A clean, non-red position.</h3>
-                <p class="report-card-dek" data-zh="「國際資本＋台灣非紅製造＋乾淨智權」對國際買家是硬賣點。我們採反向 NPE 立場：智權是用來保護你的價值，不是用來興訟。">International capital + Taiwan non-red manufacturing + clean IP — a hard selling point to global buyers. Our stance is reverse-NPE: IP protects your value, it doesn't start lawsuits.</p>
-              </div>
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="report-dots" role="tablist" aria-label="Why-us slides"></div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
        ║ §6  Owned patents  —  TIS's own portfolio as an invisible moat.     ║
        ║ Anchor target (#owned) for the "Owned Patents" cards on Home/About. ║
        ║ Reports-style carousel; media = framed image drop-zones.            ║
@@ -658,52 +515,6 @@
         </ul>
       </div>
       <div class="report-dots" role="tablist" aria-label="Owned-patent slides"></div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §7  What you walk away with  —  2×2 payoff tiles (text, not links)   ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" aria-labelledby="capital-payoff-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-payoff-heading" class="h-section" data-reveal data-zh="不只跑得快，更走得遠、賣得貴。">Not just fast — far-reaching, and worth more.</h2>
-        </div>
-      </header>
-
-      <div class="payoff-grid">
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="估值更高">Higher valuation</h3>
-          <p class="payoff-card__body" data-zh="有護城河的技術，能拿到更高的估值倍數與出場溢價。">Technology with a moat commands higher multiples and exit premiums.</p>
-        </div>
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="出海更安全">Safer expansion</h3>
-          <p class="payoff-card__body" data-zh="投資前的 FTO 自由實施分析，先一步擋掉海外的侵權訴訟與禁制令風險。">Pre-investment FTO clearance heads off infringement suits and injunctions abroad.</p>
-        </div>
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="IPO／出場就緒">IPO / exit ready</h3>
-          <p class="payoff-card__body" data-zh="乾淨、可防禦的專利組合，是審查機構與國際買家最看重的資產之一。">A clean, defensible portfolio is one of the assets reviewers and international buyers value most.</p>
-        </div>
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="不再孤軍作戰">Never alone</h3>
-          <p class="payoff-card__body" data-zh="有了共有專利池，你不必再獨自面對外國的 NPE。">The shared pool means you don't face a foreign NPE by yourself.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §8  Close  —  centred CTA band                                      ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section capital-cta" aria-labelledby="capital-cta-heading">
-    <div class="container">
-      <h2 id="capital-cta-heading" class="h-section" data-reveal data-zh="TIS——您的智權後盾，從第一件申請到出場。">TIS — your IP backbone, from first filing to exit.</h2>
-      <p class="section-dek" data-reveal data-zh="一個隨您一同成長的長期夥伴——而不是一次性的交易。">A long-term partner that grows with you — not a one-time transaction.</p>
-      <div class="capital-cta__actions" data-reveal>
-        <a href="https://tisglobalinc.com/#contact" class="btn btn-primary btn-lg" data-zh="開始洽談">Start a conversation</a>
-        <a href="https://tisglobalinc.com/#contact" class="btn btn-secondary btn-lg" data-zh="索取簡介">Request the overview</a>
-      </div>
     </div>
   </section>
 
