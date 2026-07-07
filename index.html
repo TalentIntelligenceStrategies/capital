@@ -126,14 +126,88 @@
     .capital-hero #hero-shader { --globe-size: clamp(320px, 94vw, 460px); }
   }
 
-  /* ── §1.5 Services — 3-up tiles (reuse .payoff-card). ── */
+  /* ── §1.5 Services — one band: text left, 3-up tiles right (reuse .payoff-card). ── */
+  .capital-services__split {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.85fr) 1.7fr;
+    gap: clamp(28px, 3.5vw, 56px);
+    align-items: center;
+  }
+  /* Header sits in the left column; drop its default trailing space so the two
+     columns baseline against each other. */
+  .capital-services__intro { margin-bottom: 0; }
+
   .capital-services__grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: clamp(12px, 1.4vw, 20px);
-    margin-top: clamp(24px, 3vw, 40px);
+    gap: clamp(12px, 1.2vw, 18px);
+    margin-top: 0;              /* no longer stacked under the header */
   }
+
+  /* Text hierarchy (scoped to §1.5). Zero the title/body UA margins so the
+     card's own 10px gap owns the title↔body rhythm (the primitive otherwise
+     inherits ~1em heading/paragraph margins that bloat the gap to ~43px).
+     Balanced/pretty wrapping keeps the two-line breaks even. */
+  .capital-services__grid .payoff-card__title,
+  .capital-services__grid .payoff-card__body { margin: 0; }
+  .capital-services__grid .payoff-card__title { text-wrap: balance; }
+  .capital-services__grid .payoff-card__body { text-wrap: pretty; }
+  /* Reserve a two-line title zone on the desktop row so all three bodies share
+     one baseline (a one-line title otherwise floats its body ~23px higher).
+     Dropped on the mobile stack, where a reserved second line reads as a gap. */
+  @media (min-width: 901px) {
+    .capital-services__grid .payoff-card__title { min-height: calc(1.25em * 2); }
+  }
+
+  /* Motion — staggered fade+rise on scroll-in, subtle hover lift. Animates only
+     transform/opacity; strong ease-out; respects prefers-reduced-motion. The
+     shared [data-reveal] observer (site.js) adds .is-revealed to the cards. */
+  .capital-services__grid .payoff-card[data-reveal] {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1),
+                opacity 240ms cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform, opacity;
+  }
+  .capital-services__grid .payoff-card[data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+  .capital-services__grid .payoff-card[data-reveal]:nth-child(2).is-revealed { transition-delay: 70ms; }
+  .capital-services__grid .payoff-card[data-reveal]:nth-child(3).is-revealed { transition-delay: 140ms; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .capital-services__grid .payoff-card {
+      transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+                  border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+                  box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .capital-services__grid .payoff-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-tertiary);
+      box-shadow: var(--shadow-medium);
+    }
+    /* Keep the reveal transition on the way in; hover transition applies after. */
+    .capital-services__grid .payoff-card[data-reveal].is-revealed:hover {
+      transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+                  border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+                  box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .capital-services__grid .payoff-card[data-reveal],
+    .capital-services__grid .payoff-card[data-reveal].is-revealed {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .capital-services__grid .payoff-card:hover { transform: none; }
+  }
+
   @media (max-width: 900px) {
+    .capital-services__split { grid-template-columns: 1fr; }
+    .capital-services__intro { margin-bottom: clamp(24px, 3vw, 40px); }
     .capital-services__grid { grid-template-columns: 1fr; }
   }
 
@@ -360,8 +434,8 @@
        ║ deep-dive that follows from §2 onward.                               ║
        ╚═════════════════════════════════════════════════════════════════════╝ -->
   <section class="section capital-services" aria-labelledby="capital-does-heading">
-    <div class="container">
-      <header class="section-head">
+    <div class="container capital-services__split">
+      <header class="section-head capital-services__intro">
         <div>
           <h2 id="capital-does-heading" class="h-section" data-reveal data-zh="泰然資本做什麼">What TIS Capital does</h2>
           <p class="section-dek" data-reveal data-zh="深耕台灣與亞太，我們沿三條主線與企業同行——並以一套智權方案，讓每一分投入都更值錢、更安全。">Rooted in Taiwan and Asia-Pacific, we work alongside companies on three fronts — and back each with an IP program that makes what you build worth more, and safer.</p>
