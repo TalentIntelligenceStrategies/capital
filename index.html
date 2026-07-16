@@ -52,7 +52,16 @@
   /* ── Hero: editorial split — headline top-left, sub bottom-right — over the
         centred globe. The pillar stretches to the hero's full height and pushes
         the two text blocks to opposite corners (justify-content: space-between). ── */
-  .hero.capital-hero { align-items: stretch; }
+  /* Full-viewport hero — owns the first screen (100dvh minus the fixed 64px
+     nav, which main's padding-top already reserves), matching the homepage
+     [data-page="home"] .hero. The editorial split then pushes the headline to
+     the top-left and the sub+CTAs to the bottom-right of that tall frame. */
+  .hero.capital-hero {
+    align-items: stretch;
+    height: auto;
+    min-height: calc(100dvh - 64px);
+    padding-block: 0;
+  }
   .capital-hero .hero-inner {
     display: flex;
     align-items: stretch;
@@ -116,26 +125,25 @@
     .capital-hero .pillar-actions { align-self: flex-start; justify-content: flex-start; }
   }
 
-  /* ── Hero globe (COBE): centred and contained/medium, rising from the bottom
-        so only the top ~70% shows — the hero's overflow:hidden clips the lower
-        30% (bottom offset = -30% of the globe's size). z-index 4 keeps the
-        sphere clean above the grid (z3) but below the text layer (z5). Auto-spin
-        only → pointer-events:none. ── */
+  /* ── Hero globe (COBE): fully centred in both axes and contained — the whole
+        sphere sits behind the text with breathing room in the full-viewport
+        frame. z-index 4 keeps it above the grid (z3) but below the text (z5).
+        Auto-spin only → pointer-events:none. ── */
   .capital-hero #hero-shader {
-    --globe-size: clamp(460px, 62vw, 760px);
+    --globe-size: clamp(340px, 46vw, 600px);
     inset: auto;
     left: 50%;
-    bottom: calc(var(--globe-size) * -0.33);
+    top: 50%;
     width: var(--globe-size);
     height: var(--globe-size);
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     z-index: 4;
     pointer-events: none;
   }
 
-  /* Small screens: shrink the globe; same centred, bottom-cropped framing. */
+  /* Small screens: shrink the globe; same fully-centred framing. */
   @media (max-width: 700px) {
-    .capital-hero #hero-shader { --globe-size: clamp(320px, 94vw, 460px); }
+    .capital-hero #hero-shader { --globe-size: clamp(300px, 82vw, 440px); }
   }
 
   /* ── §1.5 Services — one band: text left, 3-up tiles right (reuse .payoff-card). ── */
