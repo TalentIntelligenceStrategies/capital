@@ -49,186 +49,296 @@
      import/WebGL failure the black .hero background + faint grid show through,
      matching the About hero's fallback. -->
 <style>
-  /* ── Hero: editorial split — headline top-left, sub bottom-right — over the
-        centred globe. The pillar stretches to the hero's full height and pushes
-        the two text blocks to opposite corners (justify-content: space-between). ── */
-  /* Full-viewport hero — owns the first screen (100dvh minus the fixed 64px
-     nav, which main's padding-top already reserves), matching the homepage
-     [data-page="home"] .hero. The editorial split then pushes the headline to
-     the top-left and the sub+CTAs to the bottom-right of that tall frame. */
-  .hero.capital-hero {
-    align-items: stretch;
+  /* ═══════════════════════════════════════════════════════════════════
+     Capital hero — Tailark "hero-section-5" pattern, ported to the static
+     stack: a floating blur pill-nav, a large lower-left headline + two
+     rounded CTAs, a full-bleed rounded media card holding the COBE globe,
+     and a partner-logo marquee strip below. Reuses shared .topnav /
+     #hero-shader / .partner-marquee machinery; brand tokens only. ── */
+
+  /* ── Nav → floating rounded pill ──
+     Keeps the shared .topnav markup (so lang / search / mobile drawer +
+     site.js keep working) but restyles the bar to float, transparent at the
+     top, gaining a translucent blur panel + shrinking once scrolled. The
+     .is-scrolled class is toggled by the inline script near </body>. */
+  .topnav {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: none;
     height: auto;
-    min-height: calc(100dvh - 64px);
-    padding-block: 0;
+    padding-top: 8px;                  /* aligns with the hero card's top inset */
+    pointer-events: none;              /* transparent gutter clicks through */
   }
-  .capital-hero .hero-inner {
-    display: flex;
-    align-items: stretch;
+  /* At top (over the hero): the bar sits INSIDE the hero card frame — full
+     width, padded within the rounded border, no visible pill. */
+  .topnav .topnav-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    border-radius: 9999px;
+    padding: 14px clamp(28px, 4vw, 56px);
+    border: 1px solid transparent;     /* reserve space so the scrolled border adds no jump */
+    pointer-events: auto;              /* the bar itself stays interactive */
+    transition: max-width 320ms var(--ease-card),
+                padding 320ms var(--ease-card),
+                background 320ms var(--ease-card),
+                border-color 320ms var(--ease-card),
+                box-shadow 320ms var(--ease-card);
+  }
+  /* Scrolled onto the light body: contract into a floating translucent pill. */
+  .topnav.is-scrolled .topnav-inner {
+    max-width: 1180px;
+    padding: 9px 14px 9px 24px;
+    background: var(--surface-page-translucent);
+    -webkit-backdrop-filter: saturate(140%) blur(24px);
+    backdrop-filter: saturate(140%) blur(24px);
+    border-color: var(--border-primary);
+  }
+
+  /* Hero card bleeds to the very top under the floating nav → drop main's
+     64px reserve on this page only. */
+  #main { padding-top: 0; }
+
+  /* ── Hero shell — media card absolutely placed, text floated over it ── */
+  .hero.capital-hero {
     position: relative;
-    padding-block: clamp(28px, 5vh, 56px);
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    padding: 0;
+    background: var(--surface-page);
+    overflow: hidden;
   }
-  /* Two-corner scrim: soft darkening at the top-left and bottom-right text zones
-     (above the z4 globe, behind the text) so both stay crisp over the dots. */
-  .capital-hero .hero-inner::before {
-    content: "";
+  /* Kill the shared warm .hero::before bloom — the clone card is clean. */
+  .hero.capital-hero::before { content: none; }
+
+  /* Full-bleed rounded media card (reference: absolute inset-1, rounded-[3rem],
+     hairline border) — the globe is its content. */
+  .capital-hero__media {
     position: absolute;
-    inset: 0;
-    z-index: -1;
-    background:
-      radial-gradient(ellipse 52% 56% at 14% 18%, rgba(0,0,0,0.60), rgba(0,0,0,0) 72%),
-      radial-gradient(ellipse 52% 56% at 86% 84%, rgba(0,0,0,0.60), rgba(0,0,0,0) 72%);
-    pointer-events: none;
+    inset: 6px;
+    z-index: 0;
+    border-radius: 28px;
+    border: 1px solid var(--border-primary);
+    background: var(--surface-page);          /* dark #0E0E0E via the card's data-theme="dark" */
+    overflow: hidden;
   }
-  .capital-hero .pillar {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: stretch;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    gap: 24px;
-    text-align: left;
+  @media (min-width: 1024px) {
+    .capital-hero__media { inset: 8px; border-radius: 44px; }
   }
-  .capital-hero .pillar-title {
-    align-self: flex-start;
-    text-align: left;
-    max-width: none;              /* 2-line break controlled by <br> */
-    margin: 0;
-  }
-  .capital-hero .pillar-sub {
-    align-self: flex-end;
-    text-align: right;
-    max-width: 56ch;              /* widened so the sub wraps to ~4 lines, not 5 */
-    margin: 0;
-    text-wrap: balance;           /* even out characters per line — no short orphan line */
-  }
-  .capital-hero .pillar-sub em { font-style: italic; }
-
-  /* Title owns the top; an auto bottom-margin absorbs the free space so the sub
-     and its CTA row group together at the bottom-right corner (overriding the
-     3-item space-between, which would otherwise float the sub to mid-height). */
-  .capital-hero .pillar-title { margin-bottom: auto; }
-  .capital-hero .pillar-actions {
-    align-self: flex-end;
-    justify-content: flex-end;
-    margin: 0;
-  }
-
-  /* Small screens: don't fling the two blocks to far corners — stack them
-     top-left so the copy stays readable. */
-  @media (max-width: 700px) {
-    .capital-hero .pillar { justify-content: flex-start; gap: 18px; }
-    .capital-hero .pillar-title { margin-bottom: 0; }
-    .capital-hero .pillar-sub { align-self: flex-start; text-align: left; max-width: 100%; }
-    .capital-hero .pillar-actions { align-self: flex-start; justify-content: flex-start; }
-  }
-
-  /* ── Hero globe (COBE): fully centred in both axes and contained — the whole
-        sphere sits behind the text with breathing room in the full-viewport
-        frame. z-index 4 keeps it above the grid (z3) but below the text (z5).
-        Auto-spin only → pointer-events:none. ── */
-  .capital-hero #hero-shader {
-    --globe-size: clamp(340px, 46vw, 600px);
-    inset: auto;
+  /* Globe fills the card, centred and lifted so the lower-left text zone stays
+     open (COBE config unchanged — mounts into #hero-shader). */
+  .capital-hero__media #hero-shader {
+    --globe-size: clamp(266px, 42vw, 560px);   /* 30% smaller than before */
+    position: absolute;
     left: 50%;
-    top: 50%;
+    top: 50%;                                    /* centred in the card */
     width: var(--globe-size);
     height: var(--globe-size);
     transform: translate(-50%, -50%);
-    z-index: 4;
     pointer-events: none;
   }
-
-  /* Small screens: shrink the globe; same fully-centred framing. */
-  @media (max-width: 700px) {
-    .capital-hero #hero-shader { --globe-size: clamp(300px, 82vw, 440px); }
+  /* Legibility scrim: fade the globe into the card at the bottom + a soft dark
+     wash from the left, so the light hero text reads over the sphere without
+     washing out its upper two-thirds. (var(--surface-page) = #0E0E0E here.) */
+  .capital-hero__media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, transparent 52%, var(--surface-page) 96%),
+      linear-gradient(90deg, rgba(14,14,14,0.62) 0%, rgba(14,14,14,0) 44%);
   }
 
-  /* ── §1.5 Services — one band: text left, 3-up tiles right (reuse .payoff-card). ── */
-  .capital-services__split {
-    display: grid;
-    grid-template-columns: minmax(300px, 0.85fr) 1.7fr;
-    gap: clamp(28px, 3.5vw, 56px);
-    align-items: center;
+  /* ── Hero text — centred on mobile, pushed low-left on desktop ── */
+  .capital-hero .hero-inner {
+    position: relative;
+    z-index: 10;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 132px 32px 88px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  /* Header sits in the left column; drop its default trailing space so the two
-     columns baseline against each other. */
-  .capital-services__intro { margin-bottom: 0; }
+  @media (min-width: 1024px) {
+    .capital-hero .hero-inner { justify-content: flex-end; padding: 0 32px 128px; }
+  }
+  .capital-hero__text { width: 100%; max-width: 640px; margin: 0 auto; text-align: center; }
+  @media (min-width: 1024px) {
+    .capital-hero__text { margin: 0; text-align: left; }
+  }
+  .capital-hero__title {
+    margin: 0;
+    font-size: clamp(2.2rem, 6vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+  .capital-hero__sub {
+    margin: 22px auto 0;
+    max-width: 48ch;
+    font-size: clamp(1.02rem, 1.3vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  @media (min-width: 1024px) { .capital-hero__sub { margin-left: 0; margin-right: 0; } }
+  .capital-hero__sub em { font-style: italic; }
+  .capital-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 36px;
+    justify-content: center;
+  }
+  @media (min-width: 1024px) { .capital-hero__actions { justify-content: flex-start; } }
 
-  .capital-services__grid {
+  /* Rounded pill CTAs (reference: h-12 rounded-full; primary filled w/ chevron,
+     secondary ghost). */
+  .capital-hero .btn-pill {
+    height: 52px;
+    border-radius: 9999px;
+    padding-inline: 26px;
+    font-size: 14px;
+    gap: 6px;
+  }
+  .capital-hero .btn-primary.btn-pill {
+    padding-left: 24px;
+    padding-right: 16px;
+    background: var(--surface-inverse);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    color: var(--text-inverse);
+    -webkit-text-fill-color: var(--text-inverse);
+    border: none;
+  }
+  .capital-hero .btn-primary.btn-pill:hover { background: var(--surface-inverse-hover); }
+  .capital-hero .btn-ghost.btn-pill { color: var(--text-primary); }
+  .capital-hero .btn-ghost.btn-pill:hover { background: var(--surface-translucent); }
+  .capital-hero .btn-chevron {
+    width: 18px; height: 18px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ── §1.5 Services — three service lines on LinkCard-style tiles. Static
+        (no click / no link-out): a type-led card with a decorative silver
+        motif bottom-right that lifts + scales on hover. Vanilla port of the
+        framer-motion LinkCard, tuned to the emil-design-eng framework
+        (strong ease-out, ≤300ms, transform/opacity only, reduced-motion alt). ── */
+  .svc-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: clamp(12px, 1.2vw, 18px);
-    margin-top: 0;              /* no longer stacked under the header */
+    gap: clamp(16px, 1.6vw, 22px);
+    margin-top: clamp(28px, 3vw, 44px);
   }
 
-  /* Text hierarchy (scoped to §1.5). Zero the title/body UA margins so the
-     card's own 10px gap owns the title↔body rhythm (the primitive otherwise
-     inherits ~1em heading/paragraph margins that bloat the gap to ~43px).
-     Balanced/pretty wrapping keeps the two-line breaks even. */
-  .capital-services__grid .payoff-card__title,
-  .capital-services__grid .payoff-card__body { margin: 0; }
-  .capital-services__grid .payoff-card__title { text-wrap: balance; }
-  .capital-services__grid .payoff-card__body { text-wrap: pretty; }
-  /* Reserve a two-line title zone on the desktop row so all three bodies share
-     one baseline (a one-line title otherwise floats its body ~23px higher).
-     Dropped on the mobile stack, where a reserved second line reads as a gap. */
-  @media (min-width: 901px) {
-    .capital-services__grid .payoff-card__title { min-height: calc(1.25em * 2); }
+  .svc-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: clamp(240px, 24vw, 296px);
+    padding: clamp(22px, 2.2vw, 30px);
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    background: var(--surface-secondary);
+  }
+  .svc-card__text { position: relative; z-index: 2; }
+  .svc-card__title {
+    margin: 0 0 10px;
+    font-size: clamp(1.3rem, 1.8vw, 1.6rem);
+    font-weight: 700; line-height: 1.16; letter-spacing: -0.02em;
+    color: var(--text-primary); text-wrap: balance;
+  }
+  .svc-card__body {
+    margin: 0;
+    font-size: 15px; line-height: 1.55;
+    color: var(--text-secondary); text-wrap: pretty;
+    max-width: 30ch;
   }
 
-  /* Motion — staggered fade+rise on scroll-in, subtle hover lift. Animates only
-     transform/opacity; strong ease-out; respects prefers-reduced-motion. The
-     shared [data-reveal] observer (site.js) adds .is-revealed to the cards. */
-  .capital-services__grid .payoff-card[data-reveal] {
-    opacity: 0;
-    transform: translateY(12px);
-    transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1),
-                opacity 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  /* Decorative motif — silver line-art, bottom-right, partially bled off the
+     corner. currentColor drives stroke; the gradient is per-card in the SVG. */
+  .svc-card__motif {
+    position: absolute;
+    right: -18px; bottom: -18px;
+    width: clamp(132px, 15vw, 188px);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.85;
+    transform-origin: bottom right;
+    transition: transform 320ms var(--ease-out-strong), opacity 320ms var(--ease-out-strong);
+  }
+  .svc-card__motif svg { display: block; width: 100%; height: auto; }
+
+  /* Scroll-in reveal (shared [data-reveal] observer in site.js). */
+  .svc-card[data-reveal] {
+    opacity: 0; transform: translateY(12px);
+    transition: transform 320ms var(--ease-out-strong), opacity 320ms var(--ease-out-strong);
     will-change: transform, opacity;
   }
-  .capital-services__grid .payoff-card[data-reveal].is-revealed {
-    opacity: 1;
-    transform: none;
-  }
-  .capital-services__grid .payoff-card[data-reveal]:nth-child(2).is-revealed { transition-delay: 70ms; }
-  .capital-services__grid .payoff-card[data-reveal]:nth-child(3).is-revealed { transition-delay: 140ms; }
+  .svc-card[data-reveal].is-revealed { opacity: 1; transform: none; }
+  .svc-card[data-reveal]:nth-child(2).is-revealed { transition-delay: 70ms; }
+  .svc-card[data-reveal]:nth-child(3).is-revealed { transition-delay: 140ms; }
 
   @media (hover: hover) and (pointer: fine) {
-    .capital-services__grid .payoff-card {
-      transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
-                  border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-                  box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    .svc-card {
+      transition: transform 200ms var(--ease-out-strong),
+                  border-color 200ms var(--ease-out-strong),
+                  box-shadow 200ms var(--ease-out-strong);
     }
-    .capital-services__grid .payoff-card:hover {
-      transform: translateY(-4px);
+    .svc-card:hover {
+      transform: translateY(-6px);
       border-color: var(--border-tertiary);
       box-shadow: var(--shadow-medium);
     }
-    /* Keep the reveal transition on the way in; hover transition applies after. */
-    .capital-services__grid .payoff-card[data-reveal].is-revealed:hover {
-      transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
-                  border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-                  box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
-    }
+    .svc-card:hover .svc-card__motif { transform: scale(1.08); opacity: 1; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .capital-services__grid .payoff-card[data-reveal],
-    .capital-services__grid .payoff-card[data-reveal].is-revealed {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
-    .capital-services__grid .payoff-card:hover { transform: none; }
+    .svc-card[data-reveal], .svc-card[data-reveal].is-revealed { opacity: 1; transform: none; transition: none; }
+    .svc-card:hover { transform: none; }
+    .svc-card:hover .svc-card__motif { transform: none; }
+    .svc-card__motif { transition: none; }
   }
 
   @media (max-width: 900px) {
-    .capital-services__split { grid-template-columns: 1fr; }
-    .capital-services__intro { margin-bottom: clamp(24px, 3vw, 40px); }
-    .capital-services__grid { grid-template-columns: 1fr; }
+    .svc-grid { grid-template-columns: 1fr; }
+    .svc-card { min-height: 0; }
+  }
+
+  /* ── Narrative under the service cards — three stacked statements
+        (What TIS Capital does / Here's what that actually means / Where we
+        focus). Replaces the former separate sections + the removed focus
+        cards; #focus rides the third block. ── */
+  .capital-narrative {
+    margin-top: clamp(48px, 6vw, 88px);
+    display: flex; flex-direction: column;
+    gap: clamp(40px, 5vw, 64px);
+    max-width: 720px;
+  }
+  .capital-narrative__block .h-section { margin: 0 0 14px; }
+  .capital-narrative__block .section-dek { margin: 0; max-width: 68ch; }
+
+  .capital-narrative__block[data-reveal] {
+    opacity: 0; transform: translateY(12px);
+    transition: transform 320ms var(--ease-out-strong), opacity 320ms var(--ease-out-strong);
+    will-change: transform, opacity;
+  }
+  .capital-narrative__block[data-reveal].is-revealed { opacity: 1; transform: none; }
+  .capital-narrative__block[data-reveal]:nth-child(2).is-revealed { transition-delay: 70ms; }
+  .capital-narrative__block[data-reveal]:nth-child(3).is-revealed { transition-delay: 140ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .capital-narrative__block[data-reveal],
+    .capital-narrative__block[data-reveal].is-revealed { opacity: 1; transform: none; transition: none; }
   }
 
   /* ── Framed image drop-zone. Swap the div for an <img> (or set a
@@ -273,8 +383,209 @@
     color: var(--text-secondary);
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     Expandable cards — Where we focus / Press releases.
+     A responsive grid of image-led cards; click opens a detail modal
+     (blurred backdrop, large image, eyebrow/title/description). Vanilla
+     port of the ExpandableCard pattern; light theme to match the body.
+     Motion follows the emil-design-eng framework (strong ease-out, ≤300ms,
+     scale-from-0.96, reduced-motion crossfade, shared-element morph via the
+     View Transitions API where supported). ── */
+  :root { --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); }
+
+  .xcard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(292px, 1fr));
+    gap: clamp(16px, 1.6vw, 22px);
+    margin-top: clamp(28px, 3vw, 44px);
+  }
+
+  /* Collapsed card = a button (opens the dialog). */
+  .xcard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 12px 16px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: transform 200ms var(--ease-out-strong),
+                border-color 200ms var(--ease-out-strong),
+                box-shadow 200ms var(--ease-out-strong);
+  }
+  .xcard:active { transform: scale(0.985); }
+  .xcard:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
+  @media (hover: hover) and (pointer: fine) {
+    .xcard:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-tertiary);
+      box-shadow: var(--shadow-medium);
+    }
+  }
+
+  .xcard__media {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 11;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-tertiary);
+  }
+  .xcard__media img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 450ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .xcard:hover .xcard__media img { transform: scale(1.04); }
+  }
+  .xcard__plus {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    border-radius: 9999px;
+    display: grid; place-items: center;
+    background: var(--surface-page);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    transition: transform 200ms var(--ease-out-strong), background 160ms linear, color 160ms linear;
+  }
+  .xcard__plus svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  @media (hover: hover) and (pointer: fine) {
+    .xcard:hover .xcard__plus { background: var(--text-primary); color: var(--surface-page); transform: rotate(90deg); }
+  }
+
+  .xcard__body { display: flex; flex-direction: column; gap: 6px; padding: 0 4px; }
+  .xcard__eyebrow {
+    font-family: 'Inconsolata', ui-monospace, monospace;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .xcard__title {
+    font-size: 17px; font-weight: 700;
+    line-height: 1.28; letter-spacing: -0.01em;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+
+  /* Staggered scroll-in for the grid (reuses the shared [data-reveal] observer). */
+  .xcard-grid .xcard-item[data-reveal] { opacity: 0; transform: translateY(12px); transition: transform 320ms var(--ease-out-strong), opacity 320ms var(--ease-out-strong); }
+  .xcard-grid .xcard-item[data-reveal].is-revealed { opacity: 1; transform: none; }
+  .xcard-grid .xcard-item[data-reveal]:nth-child(2).is-revealed { transition-delay: 60ms; }
+  .xcard-grid .xcard-item[data-reveal]:nth-child(3).is-revealed { transition-delay: 120ms; }
+  .xcard-grid .xcard-item[data-reveal]:nth-child(4).is-revealed { transition-delay: 180ms; }
+
+  /* ── Detail modal (one per card, authored inline + hidden for i18n; moved
+        into the shared overlay on open). ── */
+  .xcard-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: grid; place-items: center;
+    padding: clamp(16px, 4vw, 56px);
+    background: rgba(18, 18, 18, 0.5);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    backdrop-filter: blur(6px) saturate(120%);
+    opacity: 0;
+    transition: opacity 220ms var(--ease-out-strong);
+  }
+  .xcard-overlay.is-open { opacity: 1; }
+  /* Must beat the `display:grid` above so the closed overlay doesn't sit on top
+     (opacity:0 but present) and swallow every card click. */
+  .xcard-overlay[hidden] { display: none; }
+
+  .xcard__detail {
+    position: relative;
+    width: min(760px, 100%);
+    max-height: min(88vh, 900px);
+    overflow: auto;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: 22px;
+    box-shadow: 0 40px 90px -20px rgba(0,0,0,0.35);
+    transform: scale(0.96);
+    opacity: 0;
+    transition: transform 260ms var(--ease-out-strong), opacity 260ms var(--ease-out-strong);
+  }
+  .xcard-overlay.is-open .xcard__detail { transform: none; opacity: 1; }
+  .xcard__detail[hidden] { display: none; }
+
+  .xcard__detail-media img { width: 100%; height: clamp(220px, 34vh, 340px); object-fit: cover; display: block; }
+  .xcard__detail-body { padding: clamp(22px, 3.2vw, 34px); }
+  .xcard__detail-title {
+    margin: 10px 0 0;
+    font-size: clamp(1.6rem, 3vw, 2.15rem);
+    font-weight: 700; line-height: 1.12; letter-spacing: -0.02em;
+    color: var(--text-primary); text-wrap: balance;
+  }
+  .xcard__detail-dek {
+    margin: 16px 0 0;
+    font-size: 1.05rem; line-height: 1.6;
+    color: var(--text-secondary); max-width: 62ch;
+  }
+
+  /* Press cap the collapsed title to 3 lines so long release headlines don't
+     unbalance the 3-up grid. */
+  #press .xcard__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* Full-article detail body (Press) — lead dek then subhead + paragraph
+     sections, so an opened release reads like a real press article. */
+  .xcard__detail-article {
+    margin-top: clamp(22px, 2.6vw, 30px);
+    display: flex; flex-direction: column;
+    gap: clamp(20px, 2.2vw, 26px);
+  }
+  .xcard__detail-section h4 {
+    margin: 0 0 8px;
+    font-size: 1.06rem; font-weight: 700;
+    line-height: 1.3; letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+  .xcard__detail-section p {
+    margin: 0;
+    font-size: 1rem; line-height: 1.65;
+    color: var(--text-secondary); max-width: 66ch;
+  }
+  .xcard__close {
+    position: absolute; top: 14px; right: 14px; z-index: 3;
+    width: 40px; height: 40px; border-radius: 9999px;
+    display: grid; place-items: center;
+    background: var(--surface-page); color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    cursor: pointer;
+    transition: transform 200ms var(--ease-out-strong), background 160ms linear;
+  }
+  .xcard__close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .xcard__close:hover { transform: rotate(90deg); }
+  .xcard__close:active { transform: scale(0.94); }
+  .xcard__close:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+
+  /* Shared-element morph: the card image and the detail image swap under one
+     view-transition-name (set by JS only during the transition). */
+  ::view-transition-group(xcard-hero) { animation-timing-function: var(--ease-out-strong); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .xcard, .xcard__media img, .xcard__plus,
+    .xcard-grid .xcard-item[data-reveal],
+    .xcard-overlay, .xcard__detail, .xcard__close { transition-duration: 120ms; }
+    .xcard-grid .xcard-item[data-reveal] { transform: none; }
+    .xcard__detail { transform: none; }
+    .xcard:hover, .xcard:hover .xcard__media img, .xcard:hover .xcard__plus { transform: none; }
+  }
+
   /* Deep-link targets: clear the fixed top nav when jumping from the nav/search. */
-  #services, #focus, #owned, #reports, #press, #contact { scroll-margin-top: 88px; }
+  #services, #focus, #press, #contact { scroll-margin-top: 88px; }
 </style>
 </head>
 <body>
@@ -284,7 +595,7 @@
 <!-- ╔═════════════════════════════════════════════════════════════════════╗
      ║ Top nav  —  components.md §Top nav                                  ║
      ╚═════════════════════════════════════════════════════════════════════╝ -->
-<header class="topnav" role="banner">
+<header class="topnav" data-theme="dark" role="banner">
   <div class="container topnav-inner">
     <a href="/" class="topnav-logo-link" aria-label="TIS Capital — home">
       <span class="topnav-logo" aria-hidden="true"></span>
@@ -295,9 +606,7 @@
     <nav class="topnav-links" aria-label="Primary">
       <a href="#services" class="topnav-link" data-zh="我們做什麼">What we do</a>
       <a href="#focus" class="topnav-link" data-zh="聚焦所在">Where we focus</a>
-      <a href="#owned" class="topnav-link" data-zh="自有專利">Owned patents</a>
-      <a href="#reports" class="topnav-link" data-zh="報告與新聞">Reports &amp; press</a>
-      <a href="https://tisglobalinc.com/" class="topnav-link" data-zh="TIS 主站">TIS ↗</a>
+      <a href="#press" class="topnav-link" data-zh="新聞稿">Press</a>
     </nav>
 
     <div class="topnav-controls">
@@ -346,9 +655,7 @@
   <nav class="mobile-list" aria-label="Primary mobile">
     <a href="#services" data-zh="我們做什麼">What we do</a>
     <a href="#focus" data-zh="聚焦所在">Where we focus</a>
-    <a href="#owned" data-zh="自有專利">Owned patents</a>
-    <a href="#reports" data-zh="報告與新聞">Reports &amp; press</a>
-    <a href="https://tisglobalinc.com/" data-zh="TIS 主站">TIS ↗</a>
+    <a href="#press" data-zh="新聞稿">Press</a>
   </nav>
   <div class="mobile-auth">
     <a href="#contact" class="btn btn-primary" data-zh="與我們聯絡">Contact</a>
@@ -378,25 +685,15 @@
       <span data-zh="聚焦所在">Where we focus</span>
       <span class="search-link-meta" data-zh="區段">Section</span>
     </a>
-    <a href="#owned" class="search-link" data-zh="自有專利">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <span data-zh="自有專利">Owned patents</span>
-      <span class="search-link-meta" data-zh="區段">Section</span>
-    </a>
-    <a href="#reports" class="search-link" data-zh="報告與新聞">
+    <a href="#press" class="search-link" data-zh="新聞稿">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-      <span data-zh="報告與新聞">Reports &amp; press</span>
+      <span data-zh="新聞稿">Press</span>
       <span class="search-link-meta" data-zh="區段">Section</span>
     </a>
     <a href="#contact" class="search-link" data-zh="與我們聯絡">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
       <span data-zh="與我們聯絡">Contact</span>
       <span class="search-link-meta" data-zh="區段">Section</span>
-    </a>
-    <a href="https://tisglobalinc.com/" class="search-link" data-zh="TIS 主站">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/><circle cx="12" cy="12" r="9"/></svg>
-      <span data-zh="TIS 主站">TIS main site</span>
-      <span class="search-link-meta" data-zh="外部">External</span>
     </a>
   </div>
 </div>
@@ -408,28 +705,30 @@
        ║ Globe mounts into #hero-shader (see the module near </body>).       ║
        ╚═════════════════════════════════════════════════════════════════════╝ -->
   <section class="hero capital-hero" aria-label="TIS Capital — Capital and IP">
-    <!-- COBE globe mount. On any import/WebGL failure the module leaves this
-         empty and the black .hero background + faint grid show through. -->
-    <div class="hero-shader" id="hero-shader" aria-hidden="true"></div>
-    <div class="hero-grid" aria-hidden="true"></div>
+    <!-- Full-bleed rounded media card — the COBE globe mounts into #hero-shader.
+         On any import/WebGL failure the module leaves it empty and the card's
+         surface shows through. -->
+    <div class="capital-hero__media" data-theme="dark" aria-hidden="true">
+      <div class="hero-shader" id="hero-shader"></div>
+    </div>
 
-    <div class="container hero-inner">
-      <div class="pillar" data-pillar="positioning">
-        <h1 class="pillar-title">
+    <div class="hero-inner" data-theme="dark">
+      <div class="capital-hero__text">
+        <h1 class="capital-hero__title">
           <span data-zh-html data-zh="深耕台灣的資本，<br>以智權淬鍊。">Capital rooted in Taiwan,<br>sharpened by IP.</span>
         </h1>
-        <p class="pillar-sub">
+        <p class="capital-hero__sub">
           <span data-zh-html data-zh="泰然資本（TIS Capital），<em>Unify Investment Group</em> 的一員，為台灣與亞太企業提供財務策略顧問、跨境併購諮詢，以及深科技與生醫領域的早期投資媒合與孵化——並以一套提升出場價值的智權方案為後盾。">TIS Capital, part of <em>Unify Investment Group</em>, backs Taiwan and Asia-Pacific companies with financial strategy, cross-border M&amp;A, and early-stage incubation across deep-tech and biomedical — plus an IP program that raises value at exit.</span>
         </p>
-        <div class="pillar-actions">
-          <a href="#contact" class="btn btn-primary btn-lg" data-zh="與我們談談">Talk to us</a>
-          <a href="#focus" class="btn btn-glass btn-lg" data-zh="我們的聚焦">Where we focus</a>
+        <div class="capital-hero__actions">
+          <a href="#contact" class="btn btn-primary btn-pill">
+            <span data-zh="與我們談談">Talk to us</span>
+            <svg class="btn-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#focus" class="btn btn-ghost btn-pill" data-zh="我們的聚焦">Where we focus</a>
         </div>
       </div>
     </div>
-    <!-- Decorative scroll cue — hints the sections below now that the hero fills
-         the viewport. Purely visual. -->
-    <div class="hero-scroll-cue" aria-hidden="true"><span></span></div>
   </section>
 
   <!-- ╔═════════════════════════════════════════════════════════════════════╗
@@ -438,306 +737,214 @@
        ║ deep-dive that follows from §2 onward.                               ║
        ╚═════════════════════════════════════════════════════════════════════╝ -->
   <section class="section capital-services" id="services" aria-labelledby="capital-does-heading">
-    <div class="container capital-services__split">
-      <header class="section-head capital-services__intro">
-        <div>
-          <h2 id="capital-does-heading" class="h-section" data-reveal data-zh="泰然資本做什麼">What TIS Capital does</h2>
-          <p class="section-dek" data-reveal data-zh="深耕台灣與亞太，我們沿三條主線與企業同行——並以一套智權方案，讓每一分投入都更值錢、更安全。">Rooted in Taiwan and Asia-Pacific, we work alongside companies on three fronts — and back each with an IP program that makes what you build worth more, and safer.</p>
-        </div>
-      </header>
+    <div class="container">
+      <div class="svc-grid">
+        <article class="svc-card" data-reveal>
+          <div class="svc-card__text">
+            <h3 class="svc-card__title" data-zh="財務策略顧問">Financial strategy advisory</h3>
+            <p class="svc-card__body" data-zh="為台灣本地企業量身打造的財務策略顧問。">Financial-strategy advisory tailored to Taiwanese enterprises.</p>
+          </div>
+          <div class="svc-card__motif" aria-hidden="true">
+            <svg viewBox="0 0 200 200" fill="none">
+              <defs><linearGradient id="svc-motif-fin" x1="20" y1="170" x2="180" y2="40" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#C7CBD1"/><stop offset="0.55" stop-color="#8A9099"/><stop offset="1" stop-color="#E9ECEF"/>
+              </linearGradient></defs>
+              <g stroke="url(#svc-motif-fin)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22,158 66,120 104,138 142,80 182,44"/>
+                <path d="M182 44v36" opacity="0.5"/><path d="M22 158h160" opacity="0.35"/>
+                <circle cx="66" cy="120" r="3.4" fill="url(#svc-motif-fin)"/>
+                <circle cx="104" cy="138" r="3.4" fill="url(#svc-motif-fin)"/>
+                <circle cx="142" cy="80" r="3.4" fill="url(#svc-motif-fin)"/>
+                <circle cx="182" cy="44" r="4.2" fill="url(#svc-motif-fin)"/>
+              </g>
+            </svg>
+          </div>
+        </article>
 
-      <div class="capital-services__grid">
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="財務策略顧問">Financial strategy advisory</h3>
-          <p class="payoff-card__body" data-zh="為台灣本地企業量身打造的財務策略顧問。">Financial-strategy advisory tailored to Taiwanese enterprises.</p>
+        <article class="svc-card" data-reveal>
+          <div class="svc-card__text">
+            <h3 class="svc-card__title" data-zh="跨境併購諮詢">Cross-border M&amp;A</h3>
+            <p class="svc-card__body" data-zh="跨境併購諮詢，銜接亞太與國際市場。">Cross-border M&amp;A consulting that bridges Asia-Pacific and global markets.</p>
+          </div>
+          <div class="svc-card__motif" aria-hidden="true">
+            <svg viewBox="0 0 200 200" fill="none">
+              <defs><linearGradient id="svc-motif-mna" x1="40" y1="60" x2="170" y2="160" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#E9ECEF"/><stop offset="0.5" stop-color="#8A9099"/><stop offset="1" stop-color="#C7CBD1"/>
+              </linearGradient></defs>
+              <g stroke="url(#svc-motif-mna)" stroke-width="1.6" stroke-linecap="round">
+                <circle cx="66" cy="104" r="34"/>
+                <circle cx="150" cy="104" r="34"/>
+                <path d="M92 104h32" opacity="0.6"/>
+                <path d="M100 82c8 14 8 30 0 44" opacity="0.5"/>
+                <path d="M116 82c-8 14-8 30 0 44" opacity="0.5"/>
+              </g>
+            </svg>
+          </div>
+        </article>
+
+        <article class="svc-card" data-reveal>
+          <div class="svc-card__text">
+            <h3 class="svc-card__title" data-zh="早期投資與孵化">Early-stage investment &amp; incubation</h3>
+            <p class="svc-card__body" data-zh="深科技與生醫生態系的早期投資媒合與孵化。">Early-stage investment matching and incubation across deep-tech and biomedical ecosystems.</p>
+          </div>
+          <div class="svc-card__motif" aria-hidden="true">
+            <svg viewBox="0 0 200 200" fill="none">
+              <defs><linearGradient id="svc-motif-inc" x1="40" y1="40" x2="160" y2="170" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#C7CBD1"/><stop offset="0.5" stop-color="#8A9099"/><stop offset="1" stop-color="#E9ECEF"/>
+              </linearGradient></defs>
+              <g stroke="url(#svc-motif-inc)" stroke-width="1.6" stroke-linecap="round">
+                <ellipse cx="104" cy="104" rx="72" ry="30" transform="rotate(-30 104 104)"/>
+                <ellipse cx="104" cy="104" rx="72" ry="30" transform="rotate(30 104 104)" opacity="0.6"/>
+                <circle cx="104" cy="104" r="10" fill="url(#svc-motif-inc)"/>
+              </g>
+            </svg>
+          </div>
+        </article>
+      </div>
+
+      <!-- Narrative — the three statements sit under the service cards. The
+           "Where we focus" cards were removed; #focus anchor rides its block. -->
+      <div class="capital-narrative">
+        <div class="capital-narrative__block" data-reveal>
+          <h2 id="capital-does-heading" class="h-section" data-zh="泰然資本做什麼">What TIS Capital does</h2>
+          <p class="section-dek" data-zh="深耕台灣與亞太，我們沿三條主線與企業同行——並以一套智權方案，讓每一分投入都更值錢、更安全。">Rooted in Taiwan and Asia-Pacific, we work alongside companies on three fronts — and back each with an IP program that makes what you build worth more, and safer.</p>
         </div>
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="跨境併購諮詢">Cross-border M&amp;A</h3>
-          <p class="payoff-card__body" data-zh="跨境併購諮詢，銜接亞太與國際市場。">Cross-border M&amp;A consulting that bridges Asia-Pacific and global markets.</p>
+        <div class="capital-narrative__block" data-reveal>
+          <h2 id="capital-model-heading" class="h-section" data-zh="這實際上意味著什麼">Here's what that actually means.</h2>
+          <p class="section-dek" data-zh="多數投資人先評估技術，再期望智權撐得住。我們的順序相反——在投資前先清除侵權風險，投資後再築起專利防護牆。資本與保護同步到位，讓成長成為可長可久、可防禦的價值，而不是更大的靶。">Most investors underwrite the technology and hope the IP holds up. We do it in the opposite order — we clear the infringement risk before we invest, then build a patent wall after. Capital and protection move together, so your growth becomes lasting, defensible value instead of a bigger target.</p>
         </div>
-        <div class="payoff-card" data-reveal>
-          <h3 class="payoff-card__title" data-zh="早期投資與孵化">Early-stage investment &amp; incubation</h3>
-          <p class="payoff-card__body" data-zh="深科技與生醫生態系的早期投資媒合與孵化。">Early-stage investment matching and incubation across deep-tech and biomedical ecosystems.</p>
+        <div class="capital-narrative__block" id="focus" data-reveal>
+          <h2 id="capital-focus-heading" class="h-section" data-zh="我們的聚焦所在">Where we focus</h2>
+          <p class="section-dek" data-zh="我們以「資本 × 智權」雙引擎，鎖定台灣國防與雙用無人機的結構性成長——這片領域正以一個週期難得一見的速度擴張，專利防線卻尚未築起。">We aim the Capital × IP dual engine at one thing: the structural growth of Taiwan's defense and dual-use unmanned vehicles — a sector scaling at once-in-a-cycle speed, before its patent walls are built.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §2  What that actually means  —  lead statement, no cards           ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" aria-labelledby="capital-model-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-model-heading" class="h-section" data-reveal data-zh="這實際上意味著什麼">Here's what that actually means.</h2>
-          <p class="section-dek" data-reveal data-zh="多數投資人先評估技術，再期望智權撐得住。我們的順序相反——在投資前先清除侵權風險，投資後再築起專利防護牆。資本與保護同步到位，讓成長成為可長可久、可防禦的價值，而不是更大的靶。">Most investors underwrite the technology and hope the IP holds up. We do it in the opposite order — we clear the infringement risk before we invest, then build a patent wall after. Capital and protection move together, so your growth becomes lasting, defensible value instead of a bigger target.</p>
-        </div>
-      </header>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §3  Where we focus  —  Reports-style carousel, 3 evidence cards      ║
-       ║ (media = framed image drop-zones). Copy = 🟢 public-safe only.       ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" id="focus" aria-labelledby="capital-focus-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-focus-heading" class="h-section" data-reveal data-zh="我們的聚焦所在">Where we focus</h2>
-          <p class="section-dek" data-reveal data-zh="我們以「資本 × 智權」雙引擎，鎖定台灣國防與雙用無人機的結構性成長——這片領域正以一個週期難得一見的速度擴張，專利防線卻尚未築起。">We aim the Capital × IP dual engine at one thing: the structural growth of Taiwan's defense and dual-use unmanned vehicles — a sector scaling at once-in-a-cycle speed, before its patent walls are built.</p>
-        </div>
-        <div class="report-nav">
-          <button type="button" class="report-nav-btn" data-dir="prev" aria-label="Previous" aria-controls="capital-focus-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
-          </button>
-          <button type="button" class="report-nav-btn" data-dir="next" aria-label="Next" aria-controls="capital-focus-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <div class="report-carousel" id="capital-focus-carousel">
-        <ul class="report-carousel-track">
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="focus-card-1">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">21&times;</span>
-                <h3 id="focus-card-1" class="report-card-title" data-zh="整機外銷一年成長 21 倍">Whole-unit drone exports grew 21× in a year.</h3>
-                <p class="report-card-dek" data-zh="台灣無人機產業正以一個週期難得一見的速度擴張。">Taiwan's UAV sector is scaling at once-in-a-cycle speed.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="focus-card-2">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">9 / 16</span>
-                <h3 id="focus-card-2" class="report-card-title" data-zh="16 家外國廠中，9 家在台灣零專利布局">9 of 16 foreign makers hold zero patent coverage in Taiwan.</h3>
-                <p class="report-card-dek" data-zh="這片領域的智權目前門戶大開——但機會之窗不會一直開著。">The field's IP is wide open — for now.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="focus-card-3">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="先行者">First mover</span>
-                <h3 id="focus-card-3" class="report-card-title" data-zh="先布局，成長之窗就成了護城河">File first, and the growth window becomes a moat.</h3>
-                <p class="report-card-dek" data-zh="等待，就等於把成長開進別人的專利裡。">Wait, and you scale straight into someone else's patents.</p>
-              </div>
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="report-dots" role="tablist" aria-label="Focus slides"></div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ §6  Owned patents  —  TIS's own portfolio as an invisible moat.     ║
-       ║ Anchor target (#owned) for the "Owned Patents" cards on Home/About. ║
-       ║ Reports-style carousel; media = framed image drop-zones.            ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" id="owned" aria-labelledby="capital-owned-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="capital-owned-heading" class="h-section" data-reveal data-zh="自有專利">Owned patents</h2>
-          <p class="section-dek" data-reveal data-zh="我們持續累積的自有專利組合，為所投資的公司築起一道隱形護城河——這份保護跟著基金走，而不是綁在單一筆交易上。">A growing portfolio of our own patents forms an invisible moat around the companies we back — protection that travels with the fund, not any single deal.</p>
-        </div>
-        <div class="report-nav">
-          <button type="button" class="report-nav-btn" data-dir="prev" aria-label="Previous" aria-controls="owned-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
-          </button>
-          <button type="button" class="report-nav-btn" data-dir="next" aria-label="Next" aria-controls="owned-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <div class="report-carousel" id="owned-carousel">
-        <ul class="report-carousel-track">
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="owned-card-1">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="組合">Portfolio</span>
-                <h3 id="owned-card-1" class="report-card-title" data-zh="持續擴充的 TIS 自有專利基礎">A growing base of TIS-owned patents.</h3>
-                <p class="report-card-dek" data-zh="在評級引擎判定為被低估、且真正具防禦力的領域裡，持續申請與收購。">Filed and acquired across the domains our rating engine flags as undervalued and genuinely defensible.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="owned-card-2">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="覆蓋">Coverage</span>
-                <h3 id="owned-card-2" class="report-card-title" data-zh="一道護城河，護住多家公司">One moat around many companies.</h3>
-                <p class="report-card-dek" data-zh="自有保護涵蓋整個投資組合——價值跟著基金走，而不是綁在單一筆交易上。">Owned protection spans the whole portfolio — value that travels with the fund, not a single deal.</p>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="owned-card-3">
-              <div class="report-card-media img-frame" aria-hidden="true"><span class="img-frame-label" data-zh="放入圖片">Drop image</span></div>
-              <div class="report-card-body">
-                <span class="report-card-eyebrow" data-zh="防禦">Defense</span>
-                <h3 id="owned-card-3" class="report-card-title" data-zh="為共有防禦池注入基礎">Feeds the shared defense pool.</h3>
-                <p class="report-card-dek" data-zh="TIS 自有專利協助奠基交叉授權共有池，讓每一家被投公司都能取用。">TIS-owned patents help seed the Cross-License Commons every backed company can draw on.</p>
-              </div>
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="report-dots" role="tablist" aria-label="Owned-patent slides"></div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ Latest reports  —  TIS-wide report carousel (shared .report-carousel) ║
-       ╚═════════════════════════════════════════════════════════════════════╝ -->
-  <section class="section" id="reports" aria-labelledby="reports-heading">
-    <div class="container">
-      <header class="section-head">
-        <div>
-          <h2 id="reports-heading" class="h-section" data-reveal data-zh="最新報告">Latest reports</h2>
-          <p class="section-dek" data-reveal data-zh="每季解讀 IP 地形——專利佈局如何在各產業與司法管轄區之間移動。">Quarterly reads on the IP landscape — how patent positions shift across industries and jurisdictions.</p>
-        </div>
-        <div class="report-nav">
-          <button type="button" class="report-nav-btn" data-dir="prev" aria-label="Previous reports" aria-controls="reports-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
-          </button>
-          <button type="button" class="report-nav-btn" data-dir="next" aria-label="Next reports" aria-controls="reports-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <div class="report-carousel" id="reports-carousel">
-        <ul class="report-carousel-track">
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="reports-card-1">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/reports/drone.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">Q1 2026</span>
-                <h3 id="reports-card-1" class="report-card-title" data-zh="台灣無人機專利地形分析">Taiwan Drone Patent Landscape Report</h3>
-                <p class="report-card-dek" data-zh="盤點台灣無人機專利地形——飛控、動力與酬載請求項家族的持有分布，以及尚未佈局的空白地帶。">A read on Taiwan's UAV patent terrain — who holds the flight-control, propulsion, and payload claim families, and where the white space remains.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="reports-card-2">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/reports/japan.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">Q4 2025</span>
-                <h3 id="reports-card-2" class="report-card-title" data-zh="日本企業專利出清流向分析">Japanese Enterprise Patent Sell-Off Flow Report</h3>
-                <p class="report-card-dek" data-zh="追蹤日本企業出清專利的流向——買方、仲介，以及吸納這波釋出的司法管轄區。">Tracking the patents Japanese corporates are divesting and where they land — the acquirers, the brokers, and the jurisdictions absorbing the outflow.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="reports-card-3">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/reports/taiwan.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">Q3 2025</span>
-                <h3 id="reports-card-3" class="report-card-title" data-zh="台灣專利轉讓市場：買家、賣家與仲介商分析報告">Taiwan Patent Transfer Market Report</h3>
-                <p class="report-card-dek" data-zh="解構台灣專利轉讓市場的參與者——誰在買、誰在賣，以及居中促成交易的仲介商。">The players moving patents through Taiwan's assignment market — who's buying, who's selling, and the brokers sitting between them.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="reports-card-4">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/reports/thermal.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">Q2 2025</span>
-                <h3 id="reports-card-4" class="report-card-title" data-zh="能源電源管理與熱管理專利技術分析">Power &amp; Thermal Management Patent Report</h3>
-                <p class="report-card-dek" data-zh="能源系統中電源管理與熱管理專利的技術解讀——請求項密度集中之處，以及佈局重疊的區段。">A technology read on power-management and thermal-management patents across energy systems — where claim density concentrates and where positions overlap.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="report-dots" role="tablist" aria-label="Report slides"></div>
-    </div>
-  </section>
-
-  <!-- ╔═════════════════════════════════════════════════════════════════════╗
-       ║ Press releases  —  TIS-wide press carousel (shared .report-carousel)  ║
+       ║ Press releases  —  expandable-card grid, full-article detail modals   ║
        ╚═════════════════════════════════════════════════════════════════════╝ -->
   <section class="section" id="press" aria-labelledby="press-heading">
     <div class="container">
       <header class="section-head">
         <div>
           <h2 id="press-heading" class="h-section" data-reveal data-zh="新聞稿">Press releases</h2>
-          <p class="section-dek" data-reveal data-zh-html data-zh="公司動態、合作公告與精選媒體報導。">Company news, partnership announcements,<br>and select press coverage.</p>
+          <p class="section-dek" data-reveal data-zh-html data-zh="公司動態、投資里程碑與合作公告。">Company news, investment milestones,<br>and partnership announcements.</p>
         </div>
-        <div class="report-nav">
-          <button type="button" class="report-nav-btn" data-dir="prev" aria-label="Previous press releases" aria-controls="press-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
+    </header>
+
+      <div class="xcard-grid">
+        <!-- Press card 1 — inaugural fund -->
+        <div class="xcard-item" data-reveal>
+          <button class="xcard" type="button" aria-haspopup="dialog" aria-controls="xd-pr-1">
+            <span class="xcard__media">
+              <img src="https://tisglobalinc.com/assets/imagery/reports/drone.jpg" alt="" loading="lazy" decoding="async">
+              <span class="xcard__plus" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></span>
+            </span>
+            <span class="xcard__body">
+              <span class="xcard__eyebrow">2026-06-18</span>
+              <span class="xcard__title" data-zh="泰然資本完成首支無人系統基金募集。">TIS Capital closes its inaugural unmanned-systems fund.</span>
+            </span>
           </button>
-          <button type="button" class="report-nav-btn" data-dir="next" aria-label="Next press releases" aria-controls="press-carousel">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
+          <div class="xcard__detail" id="xd-pr-1" role="dialog" aria-modal="true" aria-labelledby="xdt-pr-1" hidden>
+            <button class="xcard__close" type="button" aria-label="Close" data-xcard-close><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="xcard__detail-media"><img src="https://tisglobalinc.com/assets/imagery/reports/drone.jpg" alt="" loading="lazy" decoding="async"></div>
+            <div class="xcard__detail-body">
+              <span class="xcard__eyebrow">2026-06-18</span>
+              <h3 id="xdt-pr-1" class="xcard__detail-title" data-zh="泰然資本完成首支無人系統基金募集。">TIS Capital closes its inaugural unmanned-systems fund.</h3>
+              <p class="xcard__detail-dek" data-zh="泰然資本完成首支專注於台灣無人與雙用系統領域的基金，自第一天起即讓成長資本與智權方案同步到位。">TIS Capital has closed its first fund dedicated to Taiwan's unmanned and dual-use systems sector, pairing growth capital with an IP program from day one.</p>
+              <div class="xcard__detail-article">
+                <section class="xcard__detail-section">
+                  <h4 data-zh="基金定位">The mandate</h4>
+                  <p data-zh="本基金投資於研發無人空中、地面與海上平台的企業，以及其周邊的飛控、動力與酬載子系統，投資階段涵蓋種子輪至 B 輪——此時建立專利佈局的成本仍然低廉。">The fund backs companies building unmanned aerial, ground, and maritime platforms, along with the flight-control, propulsion, and payload subsystems around them. It invests from seed to Series B, where a patent position is still cheap to build.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="資本與保護並行">Capital and protection together</h4>
+                  <p data-zh="每一筆投資的評估順序都與多數投資人相反：在資金投入前先清除侵權風險，投資後再築起專利防護牆。資本與保護同步推進。">Every position is underwritten in the opposite order from most investors: infringement risk is cleared before the check is written, and a patent wall is built after. Capital and protection move together.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="下一步">What comes next</h4>
+                  <p data-zh="首批投資已在台灣國防與雙用供應鏈中展開。基金預計於未來幾季公布首波投資組合。">First deployments are underway across Taiwan's defense and dual-use supply chain. The fund expects to announce its opening portfolio positions over the coming quarters.</p>
+                </section>
+              </div>
+            </div>
+          </div>
         </div>
-      </header>
 
-      <div class="report-carousel" id="press-carousel">
-        <ul class="report-carousel-track">
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="press-card-1">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/press/nycu.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">2026-03-26</span>
-                <h3 id="press-card-1" class="report-card-title" data-zh="陽明交大研究專利進入 TIS 授權管道。">NYCU research patents enter the TIS licensing pipeline.</h3>
-                <p class="report-card-dek" data-zh="一條從陽明交大實驗室直通商業授權的管道，將校方持有的研究專利開放給 TIS 客戶。">A direct channel from the university's labs to commercial licensing, opening NYCU-held research patents to TIS clients.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+        <!-- Press card 2 — first disclosed investment -->
+        <div class="xcard-item" data-reveal>
+          <button class="xcard" type="button" aria-haspopup="dialog" aria-controls="xd-pr-2">
+            <span class="xcard__media">
+              <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="" loading="lazy" decoding="async">
+              <span class="xcard__plus" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></span>
+            </span>
+            <span class="xcard__body">
+              <span class="xcard__eyebrow">2026-04-09</span>
+              <span class="xcard__title" data-zh="泰然資本領投一家台灣雙用無人機製造商的早期輪次。">TIS Capital leads an early-stage round in a Taiwan dual-use drone maker.</span>
+            </span>
+          </button>
+          <div class="xcard__detail" id="xd-pr-2" role="dialog" aria-modal="true" aria-labelledby="xdt-pr-2" hidden>
+            <button class="xcard__close" type="button" aria-label="Close" data-xcard-close><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="xcard__detail-media"><img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="" loading="lazy" decoding="async"></div>
+            <div class="xcard__detail-body">
+              <span class="xcard__eyebrow">2026-04-09</span>
+              <h3 id="xdt-pr-2" class="xcard__detail-title" data-zh="泰然資本領投一家台灣雙用無人機製造商的早期輪次。">TIS Capital leads an early-stage round in a Taiwan dual-use drone maker.</h3>
+              <p class="xcard__detail-dek" data-zh="泰然資本領投一家台灣雙用無人機平台製造商的早期輪次，為無人系統基金首個公開揭露的投資部位。">TIS Capital has led an early-stage round in a Taiwan-based maker of dual-use drone platforms — the first disclosed position from its unmanned-systems fund.</p>
+              <div class="xcard__detail-article">
+                <section class="xcard__detail-section">
+                  <h4 data-zh="這家公司">The company</h4>
+                  <p data-zh="該公司為商用測繪與國防採購設計機身與飛控系統，其技術落在台灣目前競爭仍不激烈的請求項家族中。">The company designs airframes and flight-control stacks for both commercial survey work and defense procurement. Its engineering sits in claim families that remain lightly contested in Taiwan.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="為何是此刻">Why now</h4>
+                  <p data-zh="過去一年台灣整機無人機外銷大幅成長，十六家外國廠中卻有九家在台灣毫無專利布局。搶先佈局的機會之窗已開啟，但不會一直敞開。">Whole-unit drone exports from Taiwan grew sharply over the past year, while nine of sixteen foreign makers hold no patent coverage locally. The window to file first is open, and it will not stay open.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="隨之而來的專利牆">The patent wall to follow</h4>
+                  <p data-zh="在投資的同時，泰然正盤點該公司的專利空白地帶並提出申請，將其成長之窗轉化為可防禦的護城河，而非更大的靶。">Alongside the investment, TIS is mapping the company's white space and filing to convert its growth window into a defensible moat rather than a larger target.</p>
+                </section>
               </div>
-            </a>
-          </li>
+            </div>
+          </div>
+        </div>
 
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="press-card-2">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">2026-01-15</span>
-                <h3 id="press-card-2" class="report-card-title" data-zh="資策會與 TIS 將數位轉型研究轉化為可授權的智財。">III and TIS turn digital-transformation research into licensable IP.</h3>
-                <p class="report-card-dek" data-zh="攜手將資策會的數位轉型研究，整理為台灣產業可授權、可延伸應用的智財。">Joint work to package III's digital-transformation research into IP that Taiwan's industries can license and build on.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+        <!-- Press card 3 — Tokyo desk / cross-border -->
+        <div class="xcard-item" data-reveal>
+          <button class="xcard" type="button" aria-haspopup="dialog" aria-controls="xd-pr-3">
+            <span class="xcard__media">
+              <img src="https://tisglobalinc.com/assets/imagery/reports/japan.jpg" alt="" loading="lazy" decoding="async">
+              <span class="xcard__plus" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></span>
+            </span>
+            <span class="xcard__body">
+              <span class="xcard__eyebrow">2026-02-11</span>
+              <span class="xcard__title" data-zh="泰然資本設立東京據點，開拓跨境專利交易。">TIS Capital opens a Tokyo desk to source cross-border patent deals.</span>
+            </span>
+          </button>
+          <div class="xcard__detail" id="xd-pr-3" role="dialog" aria-modal="true" aria-labelledby="xdt-pr-3" hidden>
+            <button class="xcard__close" type="button" aria-label="Close" data-xcard-close><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="xcard__detail-media"><img src="https://tisglobalinc.com/assets/imagery/reports/japan.jpg" alt="" loading="lazy" decoding="async"></div>
+            <div class="xcard__detail-body">
+              <span class="xcard__eyebrow">2026-02-11</span>
+              <h3 id="xdt-pr-3" class="xcard__detail-title" data-zh="泰然資本設立東京據點，開拓跨境專利交易。">TIS Capital opens a Tokyo desk to source cross-border patent deals.</h3>
+              <p class="xcard__detail-dek" data-zh="泰然資本於東京設立據點，開拓跨境專利交易，追蹤日本企業出清的資產及其可再運用的去處。">TIS Capital has opened a Tokyo desk to source cross-border patent transactions, tracking the assets Japanese corporates are divesting and where they can be put back to work.</p>
+              <div class="xcard__detail-article">
+                <section class="xcard__detail-section">
+                  <h4 data-zh="機會所在">The opportunity</h4>
+                  <p data-zh="日本企業正持續出清專利組合。此據點盤點這股流向——買方、仲介，以及吸納這些資產的司法管轄區——以發掘適合泰然客戶的標的。">Japanese enterprises are steadily divesting patent portfolios. The desk maps that outflow — the acquirers, the brokers, and the jurisdictions absorbing it — to surface assets that fit TIS clients.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="跨境橋接">A cross-border bridge</h4>
+                  <p data-zh="此據點結合泰然在台灣與亞太的觸角及日本在地的標的來源，銜接常在跨境環節停滯的併購與授權洽談。">The desk pairs TIS's Taiwan and Asia-Pacific reach with local sourcing in Japan, bridging M&amp;A and licensing conversations that usually stall at the border.</p>
+                </section>
+                <section class="xcard__detail-section">
+                  <h4 data-zh="下一步">What comes next</h4>
+                  <p data-zh="團隊正建立首條跨境交易管道，首批交易預計於今年稍晚提供給泰然客戶。">The team is building its first cross-border pipeline now, with initial transactions expected to reach TIS clients later this year.</p>
+                </section>
               </div>
-            </a>
-          </li>
-
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="press-card-3">
-              <img class="report-card-media" src="https://tisglobalinc.com/assets/imagery/press/itri-ipic.jpg" alt="" loading="lazy" decoding="async">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">2025-11-20</span>
-                <h3 id="press-card-3" class="report-card-title" data-zh="工研院 iPIC 將工業級專利導入 TIS 授權網絡。">ITRI's iPIC brings industrial-grade patents into the TIS licensing network.</h3>
-                <p class="report-card-dek" data-zh="工研院專利池為 TIS 網絡注入經產業驗證的應用型專利，擴充可供授權的組合深度。">ITRI's patent-pool arm feeds applied, industry-tested patents into the TIS network, deepening the bundles available to license.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-
-          <li class="report-card-cell">
-            <a class="report-card" aria-labelledby="press-card-4">
-              <div class="report-card-body">
-                <span class="report-card-eyebrow">2025-09-04</span>
-                <h3 id="press-card-4" class="report-card-title" data-zh="TIS 與 Innovue 締結奠基合作，撐起每一項交付成果。">TIS and Innovue forge the founding partnership behind every deliverable.</h3>
-                <p class="report-card-dek" data-zh="奠基的結盟——Innovue 的 IP 情報平台與專業，撐起 TIS 每一份分析與報告。">The founding alliance: Innovue's IP intelligence platform and expertise underpin every analysis and report TIS produces.</p>
-                <span class="report-card-more"><span data-zh="閱讀更多">Read more</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-              </div>
-            </a>
-          </li>
-        </ul>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="report-dots" role="tablist" aria-label="Press slides"></div>
     </div>
   </section>
 
@@ -888,6 +1095,10 @@
 
 </main>
 
+<!-- Expandable-card modal backdrop. Each card's detail (authored inline + hidden
+     for i18n) is moved in here on open, and moved back on close. -->
+<div class="xcard-overlay" id="xcard-overlay" hidden></div>
+
 <!-- Language toggle overlay — built up by JS, plays on user EN<->ZH swap. -->
 <div id="lang-overlay" aria-hidden="true">
   <div id="lang-cube"></div>
@@ -956,6 +1167,118 @@
     } catch (err) {
       console.error('[capital-globe] failed to init; falling back to black hero.', err);
     }
+  })();
+</script>
+
+<!-- Floating pill-nav: light content over the dark hero (data-theme="dark"),
+     flipping to dark content + the translucent-white blur panel once scrolled
+     onto the light body (mirrors the reference HeroHeader's scroll behaviour). -->
+<script>
+  (() => {
+    const nav = document.querySelector('.topnav');
+    if (!nav) return;
+    const onScroll = () => {
+      const scrolled = window.scrollY > 24;
+      nav.classList.toggle('is-scrolled', scrolled);
+      nav.setAttribute('data-theme', scrolled ? 'light' : 'dark');
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+</script>
+
+<!-- Expandable cards: open a card's inline detail in the shared overlay as a
+     modal. Shared-element morph via the View Transitions API where supported
+     (card image ↔ detail image share a view-transition-name only during the
+     transition); scale/opacity fallback otherwise. Focus move-in + restore,
+     body scroll-lock, ESC / backdrop / × to close, basic focus trap. -->
+<script>
+  (() => {
+    const overlay = document.getElementById('xcard-overlay');
+    if (!overlay) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const supportsVT = typeof document.startViewTransition === 'function' && !reduce;
+    let active = null;      // the open .xcard__detail
+    let home = null;        // { parent, next } to restore it
+    let lastFocus = null;
+
+    const focusables = (el) => el.querySelectorAll('button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])');
+
+    function reveal(item) {
+      const detail = item.querySelector('.xcard__detail');
+      const detImg = detail.querySelector('.xcard__detail-media img');
+      home = { parent: detail.parentNode, next: detail.nextSibling };
+      overlay.appendChild(detail);
+      detail.hidden = false;
+      overlay.hidden = false;
+      void overlay.offsetWidth;            // reflow so the CSS transition runs
+      overlay.classList.add('is-open');
+      document.documentElement.style.overflow = 'hidden';
+      active = detail;
+      if (supportsVT && detImg) { detImg.style.viewTransitionName = 'xcard-hero'; }
+      const closeBtn = detail.querySelector('[data-xcard-close]');
+      if (closeBtn) closeBtn.focus();
+    }
+
+    function open(item) {
+      lastFocus = document.activeElement;
+      const cardImg = item.querySelector('.xcard__media img');
+      if (supportsVT && cardImg) {
+        cardImg.style.viewTransitionName = 'xcard-hero';
+        const vt = document.startViewTransition(() => {
+          cardImg.style.viewTransitionName = '';
+          reveal(item);
+        });
+        vt.finished.finally(() => {
+          const di = active && active.querySelector('.xcard__detail-media img');
+          if (di) di.style.viewTransitionName = '';
+        });
+      } else {
+        reveal(item);
+      }
+    }
+
+    function restore() {
+      if (!active) return;
+      const detail = active;
+      detail.hidden = true;
+      if (home) home.parent.insertBefore(detail, home.next);
+      overlay.hidden = true;
+      active = null; home = null;
+      document.documentElement.style.overflow = '';
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    function close() {
+      if (!active) return;
+      overlay.classList.remove('is-open');
+      if (supportsVT) {
+        const detImg = active.querySelector('.xcard__detail-media img');
+        if (detImg) detImg.style.viewTransitionName = 'xcard-hero';
+        const vt = document.startViewTransition(() => restore());
+        vt.finished.finally(() => {});
+      } else {
+        // wait out the fade before yanking it from the DOM
+        setTimeout(restore, reduce ? 0 : 240);
+      }
+    }
+
+    document.querySelectorAll('.xcard[aria-haspopup="dialog"]').forEach((btn) => {
+      btn.addEventListener('click', () => open(btn.closest('.xcard-item')));
+    });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => { if (e.target.closest('[data-xcard-close]')) close(); });
+    document.addEventListener('keydown', (e) => {
+      if (!active) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key === 'Tab') {                       // simple focus trap
+        const f = focusables(active);
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
   })();
 </script>
 
